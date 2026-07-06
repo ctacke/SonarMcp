@@ -32,12 +32,12 @@ information you'd otherwise have to open the SonarQube dashboard for.
 ### Recommended: install as a global tool
 
 ```bash
-dotnet tool install -g SonarMcp.Server
+dotnet tool install -g ctacke.SonarMcp.Server
 ```
 
-Published to [nuget.org](https://www.nuget.org/packages/SonarMcp.Server), so no source configuration or
+Published to [nuget.org](https://www.nuget.org/packages/ctacke.SonarMcp.Server), so no source configuration or
 authentication is needed — it's the .NET SDK's default package source. This installs a `sonar-mcp`
-command on your `PATH`. Upgrade later with `dotnet tool update -g SonarMcp.Server`.
+command on your `PATH`. Upgrade later with `dotnet tool update -g ctacke.SonarMcp.Server`.
 
 ### Alternative: download a release binary
 

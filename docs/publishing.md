@@ -12,7 +12,7 @@ needs an API key).
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - A [nuget.org](https://www.nuget.org) account
 - A NuGet API key (nuget.org → your account → API Keys → create one scoped
-  to push new packages and new versions of `SonarMcp.Server`)
+  to push new packages and new versions of `ctacke.SonarMcp.Server`)
 - `gh` CLI (optional — useful for creating GitHub Releases)
 
 ---
@@ -25,7 +25,7 @@ needed to pack as a tool:
 ```xml
 <PackAsTool>true</PackAsTool>
 <ToolCommandName>sonar-mcp</ToolCommandName>
-<PackageId>SonarMcp.Server</PackageId>
+<PackageId>ctacke.SonarMcp.Server</PackageId>
 <Version>1.0.0</Version>
 <Authors>Chris Tacke</Authors>
 <Description>MCP server providing SonarQube issue and quality gate access for Claude Code.</Description>
@@ -34,9 +34,14 @@ needed to pack as a tool:
 <PackageReadmeFile>README.md</PackageReadmeFile>
 ```
 
-Before publishing for the first time, check that `SonarMcp.Server` isn't
-already taken on nuget.org — package IDs there are first-come, first-served
-and can't be transferred after the fact.
+Before publishing for the first time, check that `ctacke.SonarMcp.Server`
+isn't already taken on nuget.org — package IDs there are first-come,
+first-served and can't be transferred after the fact.
+
+> `SonarMcp.Server` (without the `ctacke.` prefix) doesn't work — `Sonar` is
+> a reserved namespace prefix on nuget.org (owned by SonarSource), so any
+> package ID starting with it is rejected at push time regardless of
+> credentials. Hence the `ctacke.` prefix here.
 
 No `nuget.config` is needed to *publish* to nuget.org — it's the default
 NuGet source already, so pushing only needs the `--api-key` on the command
@@ -61,7 +66,7 @@ dotnet test tests/SonarMcp.Tests/SonarMcp.Tests.csproj -c Release --no-build
 dotnet pack src/SonarMcp.Server/SonarMcp.Server.csproj -c Release -o ./artifacts
 ```
 
-This produces `artifacts/SonarMcp.Server.<version>.nupkg`.
+This produces `artifacts/ctacke.SonarMcp.Server.<version>.nupkg`.
 
 ---
 
@@ -74,11 +79,11 @@ $env:NUGET_API_KEY = "YOUR_NUGET_ORG_API_KEY"
 # macOS / Linux
 export NUGET_API_KEY=YOUR_NUGET_ORG_API_KEY
 
-dotnet nuget push artifacts/SonarMcp.Server.*.nupkg --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY
+dotnet nuget push artifacts/ctacke.SonarMcp.Server.*.nupkg --source https://api.nuget.org/v3/index.json --api-key $env:NUGET_API_KEY
 ```
 
-The package appears at `https://www.nuget.org/packages/SonarMcp.Server` a
-few minutes after indexing completes.
+The package appears at `https://www.nuget.org/packages/ctacke.SonarMcp.Server`
+a few minutes after indexing completes.
 
 ---
 
@@ -96,7 +101,7 @@ That workflow authenticates to NuGet.org using
 [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing)
 (OIDC) rather than a stored API key — no repository secret needed. This
 requires a one-time setup: a Trusted Publisher policy on nuget.org for the
-`SonarMcp.Server` package pointing at `ctacke/SonarMcp`, workflow
+`ctacke.SonarMcp.Server` package pointing at `ctacke/SonarMcp`, workflow
 `release.yml`, environment `production`; and a matching GitHub Environment
 named `production` created under **Settings → Environments**.
 
@@ -123,7 +128,7 @@ manually bump `<Version>` in the csproj first.
 ### Via dotnet tool (recommended)
 
 ```bash
-dotnet tool install -g SonarMcp.Server
+dotnet tool install -g ctacke.SonarMcp.Server
 ```
 
 No source configuration or authentication needed — NuGet.org is the default

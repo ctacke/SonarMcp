@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>sonar-mcp</ToolCommandName>
-    <PackageId>SonarMcp.Server</PackageId>
+    <PackageId>ctacke.SonarMcp.Server</PackageId>
     <Version>1.0.0</Version>
     <Authors>Chris Tacke</Authors>
     <Description>MCP server providing SonarQube issue and quality gate access for Claude Code.</Description>
