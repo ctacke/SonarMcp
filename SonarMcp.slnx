@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="assets/icon.png" />
+    <File Path="docs/publishing.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/SonarMcp.Server/SonarMcp.Server.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SonarMcp.Tests/SonarMcp.Tests.csproj" />
+  </Folder>
+</Solution>
