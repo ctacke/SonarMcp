@@ -59,6 +59,29 @@ public static class SonarQubeTools
         }
     }
 
+    [McpServerTool(Name = "list_hotspots")]
+    [Description("List SonarQube security hotspots for a project, optionally scoped to a branch. Mirrors the SonarQube dashboard's Security Hotspots view.")]
+    public static async Task<string> ListHotspots(
+        SonarQubeClient client,
+        [Description("SonarQube project key. Falls back to the server's configured default (SONAR_PROJECT_KEY) if omitted.")] string? projectKey = null,
+        [Description("Branch name, e.g. feature/my-branch. Omit to search the project's main branch.")] string? branch = null,
+        [Description("Hotspot review status: TO_REVIEW or REVIEWED.")] string status = "TO_REVIEW",
+        [Description("Resolution filter, only applicable when status is REVIEWED: FIXED, SAFE, or ACKNOWLEDGED. Omit for all.")] string? resolution = null,
+        [Description("Only include hotspots introduced since the leak/new-code period (matches the dashboard's default PR view).")] bool inNewCodePeriod = false,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await client.SearchHotspotsAsync(projectKey, branch, status, resolution, inNewCodePeriod, ct);
+            var scope = branch is null ? "project" : $"branch '{branch}'";
+            return FormatHotspots(result, scope, status);
+        }
+        catch (Exception ex)
+        {
+            return $"ERROR listing hotspots:\n{Describe(ex)}";
+        }
+    }
+
     [McpServerTool(Name = "get_quality_gate_status")]
     [Description("Get the SonarQube quality gate status (pass/fail) for a branch, including any failing conditions. Use this to check whether a PR's SonarQube check failed.")]
     public static async Task<string> GetQualityGateStatus(
@@ -99,6 +122,25 @@ public static class SonarQubeTools
         {
             var location = issue.Line is int line ? $"{issue.Component}:{line}" : issue.Component;
             sb.AppendLine($"[{issue.Severity}] [{issue.Type}] {issue.Rule} — {location} — {issue.Message} ({issue.Status})");
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>Renders a hotspot search result as the "N hotspot(s) for X" text used by list_hotspots.</summary>
+    private static string FormatHotspots(SonarHotspotSearchResult result, string scopeDescription, string status)
+    {
+        if (result.Hotspots.Count == 0)
+        {
+            return $"No hotspots found for {scopeDescription} (status: {status}).";
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"{result.Total} hotspot(s) for {scopeDescription} (status: {status}):");
+        foreach (var hotspot in result.Hotspots)
+        {
+            var location = hotspot.Line is int line ? $"{hotspot.Component}:{line}" : hotspot.Component;
+            sb.AppendLine($"[{hotspot.VulnerabilityProbability}] [{hotspot.SecurityCategory}] {hotspot.RuleKey} — {location} — {hotspot.Message} ({hotspot.Status}{(hotspot.Resolution is null ? "" : $"/{hotspot.Resolution}")})");
         }
 
         return sb.ToString();

@@ -111,6 +111,72 @@ public class SonarQubeClientTests
     }
 
     [Fact]
+    public async Task SearchHotspotsAsync_ParsesHotspotsAndTotal()
+    {
+        const string json = """
+        {
+          "paging": { "pageIndex": 1, "pageSize": 500, "total": 2 },
+          "hotspots": [
+            {
+              "key": "HOTSPOT-1",
+              "component": "myproj:src/Foo.cs",
+              "securityCategory": "sql-injection",
+              "vulnerabilityProbability": "HIGH",
+              "status": "TO_REVIEW",
+              "line": 42,
+              "message": "Make sure this query is safe",
+              "ruleKey": "csharpsquid:S2077"
+            },
+            {
+              "key": "HOTSPOT-2",
+              "component": "myproj:src/Bar.cs",
+              "securityCategory": "weak-cryptography",
+              "vulnerabilityProbability": "MEDIUM",
+              "status": "REVIEWED",
+              "resolution": "SAFE",
+              "message": "Check this cryptography use",
+              "ruleKey": "csharpsquid:S4790"
+            }
+          ]
+        }
+        """;
+
+        var (client, handler) = MakeClient(MakeConfig(), HttpStatusCode.OK, json);
+
+        var result = await client.SearchHotspotsAsync(
+            "myproj", "main", "TO_REVIEW", resolution: null, inNewCodePeriod: false);
+
+        Assert.Equal(2, result.Total);
+        Assert.Equal(2, result.Hotspots.Count);
+
+        var first = result.Hotspots[0];
+        Assert.Equal("HOTSPOT-1", first.Key);
+        Assert.Equal("HIGH", first.VulnerabilityProbability);
+        Assert.Equal(42, first.Line);
+
+        var second = result.Hotspots[1];
+        Assert.Null(second.Line);
+        Assert.Equal("SAFE", second.Resolution);
+
+        Assert.Contains("projectKey=myproj", handler.LastRequest!.RequestUri!.Query);
+        Assert.Contains("branch=main", handler.LastRequest.RequestUri.Query);
+        Assert.Contains("status=TO_REVIEW", handler.LastRequest.RequestUri.Query);
+    }
+
+    [Fact]
+    public async Task SearchHotspotsAsync_IncludesResolutionAndOrganizationWhenConfigured()
+    {
+        var (client, handler) = MakeClient(
+            MakeConfig(organization: "my-org"), HttpStatusCode.OK, """{"paging":{"total":0},"hotspots":[]}""");
+
+        await client.SearchHotspotsAsync("proj", null, "REVIEWED", resolution: "FIXED", inNewCodePeriod: true);
+
+        Assert.Contains("organization=my-org", handler.LastRequest!.RequestUri!.Query);
+        Assert.Contains("resolution=FIXED", handler.LastRequest.RequestUri.Query);
+        Assert.Contains("inNewCodePeriod=true", handler.LastRequest.RequestUri.Query);
+    }
+
+    [Fact]
     public async Task GetQualityGateStatusAsync_ParsesStatusAndConditions()
     {
         const string json = """

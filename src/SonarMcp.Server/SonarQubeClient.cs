@@ -25,6 +25,19 @@ public sealed record SonarQualityGateCondition(
 
 public sealed record SonarQualityGateStatus(string Status, IReadOnlyList<SonarQualityGateCondition> Conditions);
 
+public sealed record SonarHotspot(
+    string Key,
+    string Component,
+    string? SecurityCategory,
+    string? VulnerabilityProbability,
+    string? Status,
+    string? Resolution,
+    int? Line,
+    string? Message,
+    string? RuleKey);
+
+public sealed record SonarHotspotSearchResult(int Total, IReadOnlyList<SonarHotspot> Hotspots);
+
 /// <summary>
 /// Thin wrapper over the SonarQube Web API (issues + quality gate), authenticated via a PAT set as the
 /// HttpClient's Basic auth header (see Program.cs). Parses just the fields the MCP tools need — no full
@@ -142,6 +155,58 @@ public sealed class SonarQubeClient(HttpClient http, SonarQubeConfig config)
         }
 
         return new SonarQualityGateStatus(status, conditions);
+    }
+
+    public async Task<SonarHotspotSearchResult> SearchHotspotsAsync(
+        string? projectKey,
+        string? branch,
+        string status,
+        string? resolution,
+        bool inNewCodePeriod,
+        CancellationToken ct = default)
+    {
+        var key = ResolveProjectKey(projectKey);
+        var query = new List<string>
+        {
+            $"projectKey={Uri.EscapeDataString(key)}",
+            $"status={Uri.EscapeDataString(status)}",
+            $"inNewCodePeriod={(inNewCodePeriod ? "true" : "false")}",
+            "ps=500",
+        };
+        if (!string.IsNullOrWhiteSpace(branch))
+            query.Add($"branch={Uri.EscapeDataString(branch)}");
+        if (!string.IsNullOrWhiteSpace(config.Organization))
+            query.Add($"organization={Uri.EscapeDataString(config.Organization)}");
+        if (!string.IsNullOrWhiteSpace(resolution))
+            query.Add($"resolution={Uri.EscapeDataString(resolution)}");
+
+        var json = await GetJsonAsync($"/api/hotspots/search?{string.Join('&', query)}", ct);
+
+        var total = (int?)json["paging"]?["total"] ?? 0;
+        var hotspots = new List<SonarHotspot>();
+        if (json["hotspots"] is JsonArray hotspotsArray)
+        {
+            foreach (var node in hotspotsArray)
+            {
+                if (node is null)
+                {
+                    continue;
+                }
+
+                hotspots.Add(new SonarHotspot(
+                    Key: (string?)node["key"] ?? "",
+                    Component: (string?)node["component"] ?? "",
+                    SecurityCategory: (string?)node["securityCategory"],
+                    VulnerabilityProbability: (string?)node["vulnerabilityProbability"],
+                    Status: (string?)node["status"],
+                    Resolution: (string?)node["resolution"],
+                    Line: (int?)node["line"],
+                    Message: (string?)node["message"],
+                    RuleKey: (string?)node["ruleKey"]));
+            }
+        }
+
+        return new SonarHotspotSearchResult(total, hotspots);
     }
 
     /// <summary>Login of the user identified by the configured PAT — used to scope "assigned to me" issue searches.</summary>
